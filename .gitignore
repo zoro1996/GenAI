@@ -3,3 +3,7 @@ ATS/venv/
 
 # Ignore compiled Python files
 ATS/__pycache__/
+
+
+# Ignore environment files
+ATS/.env
