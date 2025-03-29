@@ -1,0 +1,5 @@
+# Ignore Python virtual environments
+ATS/venv/
+
+# Ignore compiled Python files
+ATS/__pycache__/
