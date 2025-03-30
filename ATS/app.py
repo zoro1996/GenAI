@@ -4,16 +4,17 @@ import streamlit as st
 import os
 import io
 from PIL import Image
-import pdf2image
-import google.generativeai as genai
+import fitz  # PyMuPDF for PDF processing
 import pdfplumber
-import fitz  
-#from mlflow_evaluator import log_ats_evaluation  # Import MLflow evaluation module
+import google.generativeai as genai
+import openai  # OpenAI API for responses
+
 # Load environment variables
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-
+# Extract text from PDF
 def extract_text_from_pdf(uploaded_file):
     text = ""
     with pdfplumber.open(uploaded_file) as pdf:
@@ -21,20 +22,12 @@ def extract_text_from_pdf(uploaded_file):
             text += page.extract_text() + "\n"
     return text.strip() if text else "No text extracted from PDF."
 
-# Function to process PDF and convert first page to image
+# Convert first page of PDF to image
 def input_pdf_setup(uploaded_file):
     if uploaded_file is not None:
         doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-        pix = doc[0].get_pixmap()  # Get first page as an image
+        pix = doc[0].get_pixmap()
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-
-        # images = pdf2image.convert_from_bytes(uploaded_file.read())
-        # first_page = images[0]
-
-        # # Convert image to bytes
-        # img_byte_arr = io.BytesIO()
-        # first_page.save(img_byte_arr, format="JPEG")
-        # img_byte_arr = img_byte_arr.getvalue()
 
         # Convert to bytes
         img_byte_arr = io.BytesIO()
@@ -51,22 +44,46 @@ def input_pdf_setup(uploaded_file):
     else:
         raise FileNotFoundError("No file uploaded")
 
-# Function to generate AI response
-def get_gemini_response(input, pdf_content, prompt):
+# OpenAI API function
+def get_openai_response(input_text, pdf_text, prompt):
+    if not openai_api_key:
+        st.error("⚠️ OpenAI API Key is required! Please enter your key in the sidebar.")
+        return ""
+    
+    openai.api_key = openai_api_key  # Assign user-provided key
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": f"Job Description: {input_text}\nResume Content: {pdf_text}"}
+        ],
+        max_tokens=1024
+    )
+    return response["choices"][0]["message"]["content"]
+
+# Google Gemini API function
+def get_gemini_response(input_text, pdf_content, prompt):
     model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content([input, pdf_content[0], prompt])
+    response = model.generate_content([input_text, pdf_content[0], prompt])
     return response.text
 
 # Streamlit UI Configuration
 st.set_page_config(page_title="ATS Resume Expert", layout="wide")
 
-# Sidebar for navigation
+# Sidebar
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=100)  # Placeholder icon
+    st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", width=100)
     st.title("ATS Resume Expert")
     st.markdown("Optimize your resume for ATS tracking and job matching.")
+    
+    # Dropdown to select model
+    model_choice = st.selectbox("Choose AI Model", ["OpenAI GPT-4", "Google Gemini"])
 
-# Main Content
+    openai_api_key = None
+    if model_choice == "OpenAI GPT-4":
+        openai_api_key = st.text_input("Enter your OpenAI API Key", type="password")
+
+# Main UI
 st.markdown("<h1 style='text-align: center; color: #4CAF50;'>ATS Tracking System</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
@@ -77,25 +94,23 @@ uploaded_file = st.file_uploader("📄 **Upload your resume (PDF)...**", type=["
 if uploaded_file:
     st.success("✅ PDF Uploaded Successfully!")
 
-# Buttons with better alignment
+# Buttons
 col1, col2 = st.columns([1, 1])
-
 with col1:
     submit1 = st.button("📑 Analyze Resume")
-
 with col2:
     submit3 = st.button("📊 Percentage Match")
 
 # Prompts
 input_prompt1 = """
-You are an experienced Technical Human Resource Manager. Your task is to review the provided resume against the job description. 
-Please share your professional evaluation on whether the candidate's profile aligns with the role. 
+You are an experienced Technical Human Resource Manager. Your task is to review the provided resume against the job description.
+Please share your professional evaluation on whether the candidate's profile aligns with the role.
 Highlight the strengths and weaknesses of the applicant in relation to the specified job requirements.
 """
 
 input_prompt3 = """
-You are a skilled ATS (Applicant Tracking System) scanner with a deep understanding of data science and ATS functionality. 
-Your task is to evaluate the resume against the provided job description. Provide a percentage match if the resume fits the job description. 
+You are a skilled ATS (Applicant Tracking System) scanner with a deep understanding of ATS functionality.
+Your task is to evaluate the resume against the provided job description. Provide a percentage match if the resume fits the job description.
 The output should include:
 1️⃣ **Percentage match**  
 2️⃣ **Keywords missing**  
@@ -105,10 +120,16 @@ The output should include:
 # Handling button clicks
 if submit1 and uploaded_file:
     pdf_content = input_pdf_setup(uploaded_file)
-
+    extracted_resume_text = extract_text_from_pdf(uploaded_file)
     #extracted_resume_text = extract_text_from_pdf(uploaded_file)  # Extract text
 
-    response = get_gemini_response(input_prompt1, pdf_content, input_text)
+    #response = get_gemini_response(input_prompt1, pdf_content, input_text)
+
+    # Use selected AI model
+    if model_choice == "OpenAI GPT-4":
+        response = get_openai_response(input_text, extracted_resume_text, input_prompt1)
+    else:
+        response = get_gemini_response(input_text, pdf_content, input_prompt1)
 
      # Evaluate and log the response in MLflow
     #ats_match, coherence = log_ats_evaluation(input_text, extracted_resume_text, response)
@@ -123,7 +144,17 @@ if submit1 and uploaded_file:
 
 elif submit3 and uploaded_file:
     pdf_content = input_pdf_setup(uploaded_file)
-    response = get_gemini_response(input_prompt3, pdf_content, input_text)
+    extracted_resume_text = extract_text_from_pdf(uploaded_file)
+    #response = get_gemini_response(input_prompt3, pdf_content, input_text)
+
+    # Use selected AI model
+    if model_choice == "OpenAI GPT-4":
+        response = get_openai_response(input_text, extracted_resume_text, input_prompt3)
+        print("response from openai")
+    else:
+        response = get_gemini_response(input_text, pdf_content, input_prompt3)
+        print("response from gemini")
+
     st.subheader("📊 ATS Match Percentage")
     st.write(response)
 

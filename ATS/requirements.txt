@@ -7,3 +7,4 @@ spacy
 sentence_transformers
 pdfplumber
 pymupdf
+openai
