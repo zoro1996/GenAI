@@ -66,9 +66,31 @@ def get_openai_response(input_text, pdf_text, prompt):
 
 # Google Gemini API function
 def get_gemini_response(input_text, pdf_content, prompt):
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content([input_text, pdf_content[0], prompt])
-    return response.text
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        # Set generation config with longer timeouts
+        generation_config = {
+            "temperature": 0.7,
+            "top_p": 1.0,
+            "top_k": 32,
+            "max_output_tokens": 2048,
+        }
+        
+        # Call with safety settings and generation config
+        response = model.generate_content(
+            [input_text, pdf_content[0], prompt],
+            generation_config=generation_config,
+            safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}]
+        )
+        return response.text
+    except Exception as e:
+        # Handle the error gracefully
+        error_message = str(e)
+        if "Deadline Exceeded" in error_message or "timeout" in error_message.lower():
+            return "The request timed out. Your PDF might be too large or complex. Try using a simpler resume or the OpenAI model instead."
+        else:
+            return f"Error processing your request: {error_message}"
 
 # Streamlit UI Configuration
 st.set_page_config(page_title="ATS Resume Expert", layout="wide")
