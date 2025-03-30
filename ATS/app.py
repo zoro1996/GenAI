@@ -7,6 +7,7 @@ from PIL import Image
 import pdf2image
 import google.generativeai as genai
 import pdfplumber
+import fitz  
 #from mlflow_evaluator import log_ats_evaluation  # Import MLflow evaluation module
 # Load environment variables
 load_dotenv()
@@ -23,12 +24,21 @@ def extract_text_from_pdf(uploaded_file):
 # Function to process PDF and convert first page to image
 def input_pdf_setup(uploaded_file):
     if uploaded_file is not None:
-        images = pdf2image.convert_from_bytes(uploaded_file.read())
-        first_page = images[0]
+        doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        pix = doc[0].get_pixmap()  # Get first page as an image
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-        # Convert image to bytes
+        # images = pdf2image.convert_from_bytes(uploaded_file.read())
+        # first_page = images[0]
+
+        # # Convert image to bytes
+        # img_byte_arr = io.BytesIO()
+        # first_page.save(img_byte_arr, format="JPEG")
+        # img_byte_arr = img_byte_arr.getvalue()
+
+        # Convert to bytes
         img_byte_arr = io.BytesIO()
-        first_page.save(img_byte_arr, format="JPEG")
+        img.save(img_byte_arr, format="JPEG")
         img_byte_arr = img_byte_arr.getvalue()
 
         pdf_parts = [

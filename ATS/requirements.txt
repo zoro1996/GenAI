@@ -6,3 +6,4 @@ mlflow
 spacy
 sentence_transformers
 pdfplumber
+pymupdf
