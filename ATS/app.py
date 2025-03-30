@@ -7,12 +7,15 @@ from PIL import Image
 import fitz  # PyMuPDF for PDF processing
 import pdfplumber
 import google.generativeai as genai
-import openai  # OpenAI API for responses
+#import openai  # OpenAI API for responses
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-openai.api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
+
+#openai = OpenAI()
 
 # Extract text from PDF
 def extract_text_from_pdf(uploaded_file):
@@ -49,9 +52,9 @@ def get_openai_response(input_text, pdf_text, prompt):
     if not openai_api_key:
         st.error("⚠️ OpenAI API Key is required! Please enter your key in the sidebar.")
         return ""
-    
-    openai.api_key = openai_api_key  # Assign user-provided key
-    response = openai.ChatCompletion.create(
+    api_key = openai_api_key
+    client = OpenAI(api_key=api_key)  # Initialize the client
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": prompt},
@@ -59,7 +62,7 @@ def get_openai_response(input_text, pdf_text, prompt):
         ],
         max_tokens=1024
     )
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 # Google Gemini API function
 def get_gemini_response(input_text, pdf_content, prompt):
