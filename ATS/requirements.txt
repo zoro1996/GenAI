@@ -8,3 +8,4 @@ sentence_transformers
 pdfplumber
 pymupdf
 openai>=1.0.0
+PyPDF2
