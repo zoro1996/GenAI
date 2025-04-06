@@ -7,3 +7,14 @@ ATS/__pycache__/
 
 # Ignore environment files
 ATS/.env
+
+
+# Ignore Python virtual environments
+Calorie Adviser/venv/
+
+# Ignore compiled Python files
+Calorie Adviser/__pycache__/
+
+
+# Ignore environment files
+Calorie Adviser/.env
