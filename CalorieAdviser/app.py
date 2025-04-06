@@ -8,6 +8,7 @@ import re
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
+
 # Load environment and API
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
