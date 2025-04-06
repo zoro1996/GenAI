@@ -10,11 +10,11 @@ ATS/.env
 
 
 # Ignore Python virtual environments
-CalorieAdviser/venv/
+Calorie-Adviser/venv/
 
 # Ignore compiled Python files
-CalorieAdviser/__pycache__/
+Calorie-Adviser/__pycache__/
 
 
 # Ignore environment files
-CalorieAdviser/.env
+Calorie-Adviser/.env
