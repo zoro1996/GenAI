@@ -18,3 +18,14 @@ Calorie-Adviser/__pycache__/
 
 # Ignore environment files
 Calorie-Adviser/.env
+
+
+# Ignore Python virtual environments
+YouTubeTranscriptSummarizer/venv/
+
+# Ignore compiled Python files
+YouTubeTranscriptSummarizer/__pycache__/
+
+
+# Ignore environment files
+YouTubeTranscriptSummarizer/.env
